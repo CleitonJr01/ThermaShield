@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThermaShield - Controle Central</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: '#00f3ff',
+                        cyberdark: '#003b3d',
+                        neonred: '#ff003c',
+                        neongreen: '#00ff66',
+                        neonyellow: '#fcee0a',
+                        darkbg: '#0a0a0f',
+                        panelbg: '#12121a',
+                        panelborder: '#1f1f2e'
+                    },
+                    fontFamily: {
+                        mono: ['Courier New', 'monospace', 'ui-monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0a0a0f; color: #e2e8f0; }
+        .neon-text-cyber { text-shadow: 0 0 5px #00f3ff, 0 0 15px #00f3ff; }
+        .neon-border-cyber { box-shadow: 0 0 10px #00f3ff, inset 0 0 5px #003b3d; border-color: #00f3ff; }
+        .neon-border-red { box-shadow: 0 0 15px #ff003c, inset 0 0 10px #ff003c; border-color: #ff003c; }
+        
+        /* Toggle Switch Customizado */
+        .toggle-checkbox:checked { right: 0; border-color: #00f3ff; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #00f3ff; }
+        .toggle-checkbox:checked + .toggle-label:after { transform: translateX(100%); border-color: white; }
+        
+        /* Scrollbar Cyber */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #12121a; }
+        ::-webkit-scrollbar-thumb { background: #00f3ff; border-radius: 10px; }
+
+        .pulse-red { animation: pulseRed 1.5s infinite; }
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 0, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0); }
+        }
+        
+        .pulse-yellow { animation: pulseYellow 2s infinite; }
+        @keyframes pulseYellow {
+            0% { box-shadow: 0 0 0 0 rgba(252, 238, 10, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(252, 238, 10, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(252, 238, 10, 0); }
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex justify-center p-2 md:p-6">
+
+    <div class="w-full max-w-md bg-panelbg border border-panelborder rounded-2xl shadow-2xl overflow-hidden flex flex-col relative pb-6">
+        
+        <header class="p-5 border-b border-panelborder bg-black bg-opacity-40 backdrop-blur-md">
+            <h1 class="text-3xl font-bold font-mono text-transparent bg-clip-text bg-gradient-to-r from-cyber to-blue-500 neon-text-cyber mb-3 tracking-tighter">
+                THERMASHIELD
+            </h1>
+            <div class="flex justify-between items-center text-xs font-mono">
+                <span class="text-gray-400">NÓS EM MALHA:</span>
+                <div class="flex gap-2">
+                    <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-neongreen shadow-[0_0_5px_#00ff66]"></span> P1 (Portão)</div>
+                    <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-neongreen shadow-[0_0_5px_#00ff66]"></span> S1 (Sala)</div>
+                    <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-neongreen shadow-[0_0_5px_#00ff66]"></span> C1 (Corredor)</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-5 space-y-6 flex-1 overflow-y-auto">
+            
+            <div class="bg-black bg-opacity-50 border border-panelborder rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300" id="autonomous-panel">
+                <div class="absolute inset-0 bg-cyber opacity-5 pointer-events-none" id="autonomous-glow"></div>
+                <h2 class="text-sm uppercase tracking-widest text-gray-400 mb-4 font-mono font-bold">Modo de Operação</h2>
+                
+                <div class="relative inline-block w-16 h-8 align-middle select-none transition duration-200 ease-in mb-3">
+                    <input type="checkbox" name="toggle" id="mode-toggle" class="toggle-checkbox absolute block w-8 h-8 rounded-full bg-white border-4 border-gray-600 appearance-none cursor-pointer z-10 transition-transform duration-300" checked/>
+                    <label for="mode-toggle" class="toggle-label block overflow-hidden h-8 rounded-full bg-gray-600 cursor-pointer transition-colors duration-300"></label>
+                </div>
+                
+                <p id="mode-status-text" class="text-cyber font-mono text-center text-sm font-semibold h-10 flex items-center justify-center">
+                    IA COM CONTROLE TOTAL DOS ATUADORES DE DISSUASÃO
+                </p>
+            </div>
+
+            <div id="threat-indicator" class="w-full py-3 rounded-lg border border-neongreen bg-neongreen bg-opacity-10 text-center transition-all duration-500">
+                <span id="threat-text" class="font-mono font-bold text-neongreen tracking-wider">STATUS: SEGURO - NENHUMA ANOMALIA</span>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-end mb-2">
+                    <h3 class="text-xs font-mono text-gray-400">FEED TÉRMICO AMG8833 - TEMPO REAL</h3>
+                    <button id="btn-simulate" class="text-xs bg-panelborder hover:bg-gray-700 text-white py-1 px-3 rounded font-mono transition-colors">
+                        ▶ Iniciar Simulação
+                    </button>
+                </div>
+                <div class="aspect-square w-full max-w-[280px] mx-auto bg-black border-2 border-panelborder rounded-lg p-1 relative">
+                    <div id="thermal-grid" class="w-full h-full grid grid-cols-8 grid-rows-8 gap-0.5">
+                        </div>
+                    <div class="absolute top-0 left-0 w-full h-[2px] bg-cyber opacity-30 shadow-[0_0_10px_#00f3ff] animate-[scan_2s_linear_infinite] pointer-events-none"></div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-mono text-gray-400 mb-2">ATUADORES DOMÉSTICOS (DISSUASÃO)</h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <div id="act-lights" class="bg-black bg-opacity-50 border border-panelborder rounded-lg p-3 flex flex-col items-center justify-center transition-all duration-300">
+                        <svg class="w-8 h-8 mb-2 text-gray-600 transition-colors duration-300" id="icon-lights" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        <span class="text-[10px] font-mono text-gray-400">LÂMPADAS</span>
+                    </div>
+                    <div id="act-tv" class="bg-black bg-opacity-50 border border-panelborder rounded-lg p-3 flex flex-col items-center justify-center transition-all duration-300">
+                        <svg class="w-8 h-8 mb-2 text-gray-600 transition-colors duration-300" id="icon-tv" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        <span class="text-[10px] font-mono text-gray-400">SMART TV</span>
+                    </div>
+                    <div id="act-siren" class="bg-black bg-opacity-50 border border-panelborder rounded-lg p-3 flex flex-col items-center justify-center transition-all duration-300">
+                        <svg class="w-8 h-8 mb-2 text-gray-600 transition-colors duration-300" id="icon-siren" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        <span class="text-[10px] font-mono text-gray-400">ALARME</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-mono text-cyber mb-2 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-cyber animate-pulse"></span> TERMINAL DE LOGS TINYML
+                </h3>
+                <div class="bg-black border border-panelborder rounded-lg h-40 p-3 font-mono text-[10px] md:text-xs overflow-y-auto space-y-2" id="event-log">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+    </style>
+
+    <script>
+        // --- ESTADOS DO SISTEMA ---
+        let isAutonomousMode = true;
+        let isSimulating = false;
+        
+        // --- ELEMENTOS DA DOM ---
+        const modeToggle = document.getElementById('mode-toggle');
+        const modeStatusText = document.getElementById('mode-status-text');
+        const autonomousPanel = document.getElementById('autonomous-panel');
+        const autonomousGlow = document.getElementById('autonomous-glow');
+        
+        const threatIndicator = document.getElementById('threat-indicator');
+        const threatText = document.getElementById('threat-text');
+        
+        const eventLog = document.getElementById('event-log');
+        const btnSimulate = document.getElementById('btn-simulate');
+        
+        const grid = document.getElementById('thermal-grid');
+        let cells = [];
+
+        // Atuadores
+        const actLights = document.getElementById('act-lights');
+        const actTv = document.getElementById('act-tv');
+        const actSiren = document.getElementById('act-siren');
+        const iconLights = document.getElementById('icon-lights');
+        const iconTv = document.getElementById('icon-tv');
+        const iconSiren = document.getElementById('icon-siren');
+
+        // --- LÓGICA DO MODO AUTÔNOMO ---
+        modeToggle.addEventListener('change', (e) => {
+            isAutonomousMode = e.target.checked;
+            if (isAutonomousMode) {
+                modeStatusText.innerText = "IA COM CONTROLE TOTAL DOS ATUADORES DE DISSUASÃO";
+                modeStatusText.className = "text-cyber font-mono text-center text-sm font-semibold h-10 flex items-center justify-center";
+                autonomousPanel.className = "bg-black bg-opacity-50 border border-cyber rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 neon-border-cyber";
+                autonomousGlow.classList.remove('hidden');
+                addLog("[SISTEMA] Modo Autônomo ATIVADO. Defesa ativa pronta.");
+            } else {
+                modeStatusText.innerText = "MODO MANUAL: IA APENAS NOTIFICARÁ INVASÕES";
+                modeStatusText.className = "text-gray-400 font-mono text-center text-sm font-semibold h-10 flex items-center justify-center";
+                autonomousPanel.className = "bg-black bg-opacity-50 border border-gray-700 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300";
+                autonomousGlow.classList.add('hidden');
+                addLog("[SISTEMA] Modo Autônomo DESATIVADO. Atuadores em bypass manual.");
+            }
+        });
+
+        // --- INICIALIZAÇÃO DA MATRIZ TÉRMICA ---
+        function initGrid() {
+            for (let i = 0; i < 64; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'w-full h-full rounded-[1px] transition-colors duration-300 bg-[#080816]';
+                grid.appendChild(cell);
+                cells.push(cell);
+            }
+        }
+        initGrid();
+
+        // Paleta de Cores Térmicas (AMG8833 simulada)
+        const C_BG = '#080816'; // Fundo frio
+        const C_COLD = '#1e1b4b'; // Azul escuro
+        const C_MID = '#8b5cf6'; // Roxo
+        const C_WARM = '#f59e0b'; // Amarelo/Laranja
+        const C_HOT = '#ef4444'; // Vermelho
+        const C_CORE = '#ffffff'; // Branco (Centro de calor)
+
+        function drawHeatmap(blobX, blobY, intensity = 1, size = 1) {
+            for (let y = 0; y < 8; y++) {
+                for (let x = 0; x < 8; x++) {
+                    let index = y * 8 + x;
+                    if (intensity === 0) {
+                        cells[index].style.backgroundColor = C_BG;
+                        continue;
+                    }
+                    
+                    let dist = Math.sqrt(Math.pow(x - blobX, 2) + Math.pow(y - blobY, 2));
+                    
+                    if (dist < 0.8 * size) cells[index].style.backgroundColor = C_CORE;
+                    else if (dist < 1.5 * size) cells[index].style.backgroundColor = C_HOT;
+                    else if (dist < 2.5 * size) cells[index].style.backgroundColor = C_WARM;
+                    else if (dist < 4.0 * size) cells[index].style.backgroundColor = C_MID;
+                    else if (dist < 6.0 * size) cells[index].style.backgroundColor = C_COLD;
+                    else cells[index].style.backgroundColor = C_BG;
+                }
+            }
+        }
+
+        // --- SISTEMA DE LOGS ---
+        function getTimeString() {
+            const now = new Date();
+            return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        }
+
+        function addLog(message, isAlert = false, isAction = false) {
+            const p = document.createElement('p');
+            let colorClass = 'text-gray-400';
+            if (isAlert) colorClass = 'text-neonred font-bold';
+            else if (isAction) colorClass = 'text-neonyellow';
+            
+            p.innerHTML = `<span class="text-gray-600">[${getTimeString()}]</span> <span class="${colorClass}">${message}</span>`;
+            eventLog.appendChild(p);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        // Log Inicial
+        addLog("- Sistema inicializado em modo de baixo consumo.");
+
+        // --- CONTROLE DE ATUADORES ---
+        function setActuator(actuator, state) {
+            const el = actuator === 'lights' ? actLights : (actuator === 'tv' ? actTv : actSiren);
+            const icon = actuator === 'lights' ? iconLights : (actuator === 'tv' ? iconTv : iconSiren);
+            
+            if (state) {
+                el.className = `bg-neonyellow bg-opacity-20 border border-neonyellow rounded-lg p-3 flex flex-col items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(252,238,10,0.3)]`;
+                icon.className = `w-8 h-8 mb-2 text-neonyellow transition-colors duration-300`;
+                if(actuator === 'siren') {
+                    el.className = el.className.replace('neonyellow', 'neonred').replace('252,238,10', '255,0,60');
+                    icon.className = icon.className.replace('neonyellow', 'neonred');
+                }
+            } else {
+                el.className = `bg-black bg-opacity-50 border border-panelborder rounded-lg p-3 flex flex-col items-center justify-center transition-all duration-300`;
+                icon.className = `w-8 h-8 mb-2 text-gray-600 transition-colors duration-300`;
+            }
+        }
+
+        // --- ROTINA DE SIMULAÇÃO (O SHOW PRA BANCA) ---
+        btnSimulate.addEventListener('click', () => {
+            if(isSimulating) return;
+            isSimulating = true;
+            btnSimulate.innerText = "Simulando...";
+            btnSimulate.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Reset
+            threatIndicator.className = "w-full py-3 rounded-lg border border-neongreen bg-neongreen bg-opacity-10 text-center transition-all duration-500";
+            threatText.className = "font-mono font-bold text-neongreen tracking-wider";
+            threatText.innerText = "STATUS: SEGURO - NENHUMA ANOMALIA";
+            drawHeatmap(0, 0, 0); // Limpa matriz
+            setActuator('lights', false);
+            setActuator('tv', false);
+            setActuator('siren', false);
+
+            // Sequência Cronometrada
+            setTimeout(() => {
+                // T+1: Animal pequeno passa rápido na borda
+                addLog("[Nó Portão] Movimento térmico detectado. IA classificou como: Animal Doméstico (Ignorado).");
+                drawHeatmap(7, 7, 1, 0.5); // Massa pequena
+                
+                setTimeout(() => drawHeatmap(7, 8, 1, 0.5), 500);
+                setTimeout(() => drawHeatmap(0, 0, 0), 1000); // Some
+            }, 2000);
+
+            setTimeout(() => {
+                // T+5: Humano no perímetro (Amarelo)
+                threatIndicator.className = "w-full py-3 rounded-lg border border-neonyellow bg-neonyellow bg-opacity-10 text-center transition-all duration-500 pulse-yellow";
+                threatText.className = "font-mono font-bold text-neonyellow tracking-wider";
+                threatText.innerText = "ATIVIDADE SUSPEITA NO PERÍMETRO";
+                addLog("[Nó Portão] ATENÇÃO: Assinatura térmica humana identificada.", false, true);
+                
+                // Animação de entrada na matriz (Vindo da esquerda)
+                let x = -2;
+                let animInt = setInterval(() => {
+                    x += 0.5;
+                    drawHeatmap(x, 4, 1, 1.8); // Massa térmica tamanho humano
+                    if(x >= 3) clearInterval(animInt);
+                }, 200);
+            }, 6000);
+
+            setTimeout(() => {
+                // T+9: Invasão (Vermelho)
+                threatIndicator.className = "w-full py-3 rounded-lg border border-neonred bg-neonred bg-opacity-10 text-center transition-all duration-500 pulse-red";
+                threatText.className = "font-mono font-bold text-neonred tracking-wider text-sm";
+                threatText.innerText = "INVASÃO CONFIRMADA / DEFESA ATIVA";
+                addLog("[Nó Sala] ALERTA MÁXIMO: Invasão confirmada no perímetro interno.", true);
+                
+                // Massa de calor se centraliza
+                drawHeatmap(4, 4, 1, 2.5); 
+
+                // Disparo de Atuadores baseado no Toggle Central
+                setTimeout(() => {
+                    if (isAutonomousMode) {
+                        addLog("[Modo Autônomo] Executando dissuasão: Lâmpadas da sala ligadas e TV acionada em 100% do volume.", false, true);
+                        setActuator('lights', true);
+                        setActuator('tv', true);
+                        
+                        setTimeout(() => {
+                            setActuator('siren', true);
+                            addLog("[Modo Autônomo] Escalando dissuasão: Alarme perimetral disparado.", true);
+                        }, 1500);
+                    } else {
+                        addLog("[Aviso] Modo Autônomo OFF. Aguardando ação manual do usuário para dissuasão.", false, true);
+                    }
+                }, 1000);
+
+            }, 10000);
+
+            setTimeout(() => {
+                // T+17: Invasor recua (Simulando susto dos atuadores)
+                addLog("[Nó Sala] Invasor recuou. Perímetro em esquadrinhamento.");
+                
+                let x = 4;
+                let animOut = setInterval(() => {
+                    x += 1;
+                    drawHeatmap(x, 4, 1, 2.5);
+                    if(x >= 10) {
+                        clearInterval(animOut);
+                        drawHeatmap(0,0,0);
+                        
+                        // Volta ao verde
+                        threatIndicator.className = "w-full py-3 rounded-lg border border-neongreen bg-neongreen bg-opacity-10 text-center transition-all duration-500";
+                        threatText.className = "font-mono font-bold text-neongreen tracking-wider";
+                        threatText.innerText = "STATUS: SEGURO - NENHUMA ANOMALIA";
+                        
+                        setActuator('lights', false);
+                        setActuator('tv', false);
+                        setActuator('siren', false);
+                        addLog("[SISTEMA] Modo de patrulha térmica normalizado.");
+                        
+                        // Reseta botão
+                        isSimulating = false;
+                        btnSimulate.innerText = "▶ Iniciar Simulação";
+                        btnSimulate.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                }, 300);
+            }, 18000);
+        });
+    </script>
+</body>
+</html>
